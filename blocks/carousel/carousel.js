@@ -1,6 +1,6 @@
 export default function decorate(block) {
   const images = [...block.querySelectorAll('img, picture img')]
-    .map(img => img.src)
+    .map((img) => img.src)
     .filter(Boolean);
 
   if (!images.length) return;
@@ -11,7 +11,7 @@ export default function decorate(block) {
       <div class="carousel-viewport">
         <div class="carousel-track">
           ${images.map((src, i) => `
-            <div class="carousel-slide" aria-label="Slide ${i+1}">
+            <div class="carousel-slide" aria-label="Slide ${i + 1}">
               ${src}
             </div>
           `).join('')}
@@ -20,7 +20,7 @@ export default function decorate(block) {
       <button class="carousel-next" aria-label="Next">❯</button>
     </div>
     <div class="carousel-dots">
-      ${images.map((_, i) => `<button class="carousel-dot" aria-label="Go to slide ${i+1}"></button>`).join('')}
+      ${images.map((_, i) => `<button class="carousel-dot" aria-label="Go to slide ${i + 1}"></button>`).join('')}
     </div>
   `;
 
@@ -44,13 +44,25 @@ export default function decorate(block) {
 
   prev.addEventListener('click', () => go(-1));
   next.addEventListener('click', () => go(1));
-  dots.forEach((dot, i) => dot.addEventListener('click', () => { index = i; update(); }));
 
-  // Autoplay
+  dots.forEach((dot, i) => {
+    dot.addEventListener('click', () => {
+      index = i;
+      update();
+    });
+  });
+
+  // Autoplay with pause-on-hover
   const autoplaySpeed = block.classList.contains('autoplay-fast') ? 3000 : 7000;
   let timer = setInterval(() => go(1), autoplaySpeed);
-  block.addEventListener('mouseenter', () => clearInterval(timer));
-  block.addEventListener('mouseleave', () => (timer = setInterval(() => go(1), autoplaySpeed)));
+
+  block.addEventListener('mouseenter', () => {
+    clearInterval(timer);
+  });
+
+  block.addEventListener('mouseleave', () => {
+    timer = setInterval(() => go(1), autoplaySpeed);
+  });
 
   update();
 }
