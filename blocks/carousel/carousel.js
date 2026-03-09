@@ -1,5 +1,19 @@
 import { fetchPlaceholders } from '../../scripts/placeholders.js';
 
+/* ---------- Autoplay helpers ---------- */
+function startAutoplay(block, intervalMs, tickFn) {
+  stopAutoplay(block); // avoid multiple timers
+  block.__carouselTimer = setInterval(tickFn, intervalMs);
+}
+
+function stopAutoplay(block) {
+  if (block.__carouselTimer) {
+    clearInterval(block.__carouselTimer);
+    block.__carouselTimer = null;
+  }
+}
+
+/* ---------- Existing logic (unchanged except for formatting) ---------- */
 function updateActiveSlide(slide) {
   const block = slide.closest('.carousel');
   const slideIndex = parseInt(slide.dataset.slideIndex, 10);
@@ -56,10 +70,11 @@ function bindEvents(block) {
     });
   });
 
-  block.querySelector('.slide-prev').addEventListener('click', () => {
+  block.querySelector('.slide-prev')?.addEventListener('click', () => {
     showSlide(block, parseInt(block.dataset.activeSlide, 10) - 1);
   });
-  block.querySelector('.slide-next').addEventListener('click', () => {
+
+  block.querySelector('.slide-next')?.addEventListener('click', () => {
     showSlide(block, parseInt(block.dataset.activeSlide, 10) + 1);
   });
 
@@ -68,8 +83,34 @@ function bindEvents(block) {
       if (entry.isIntersecting) updateActiveSlide(entry.target);
     });
   }, { threshold: 0.5 });
+
   block.querySelectorAll('.carousel-slide').forEach((slide) => {
     slideObserver.observe(slide);
+  });
+
+  /* ---------- NEW: pause/resume hooks for autoplay ---------- */
+  block.addEventListener('mouseenter', () => {
+    stopAutoplay(block);
+  });
+
+  block.addEventListener('mouseleave', () => {
+    if (block.__autoEnabled) {
+      startAutoplay(block, block.__autoInterval, () => {
+        const i = parseInt(block.dataset.activeSlide, 10) + 1;
+        showSlide(block, i);
+      });
+    }
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopAutoplay(block);
+    } else if (block.__autoEnabled) {
+      startAutoplay(block, block.__autoInterval, () => {
+        const i = parseInt(block.dataset.activeSlide, 10) + 1;
+        showSlide(block, i);
+      });
+    }
   });
 }
 
@@ -93,6 +134,7 @@ function createSlide(row, slideIndex, carouselId) {
 }
 
 let carouselId = 0;
+
 export default async function decorate(block) {
   carouselId += 1;
   block.setAttribute('id', `carousel-${carouselId}`);
@@ -123,10 +165,9 @@ export default async function decorate(block) {
     const slideNavButtons = document.createElement('div');
     slideNavButtons.classList.add('carousel-navigation-buttons');
     slideNavButtons.innerHTML = `
-      <button type="button" class= "slide-prev" aria-label="${placeholders.previousSlide || 'Previous Slide'}"></button>
+      <button type="button" class="slide-prev" aria-label="${placeholders.previousSlide || 'Previous Slide'}"></button>
       <button type="button" class="slide-next" aria-label="${placeholders.nextSlide || 'Next Slide'}"></button>
     `;
-
     container.append(slideNavButtons);
   }
 
@@ -149,5 +190,20 @@ export default async function decorate(block) {
 
   if (!isSingleSlide) {
     bindEvents(block);
+
+    /* ---------- NEW: start autoplay ---------- */
+    const DEFAULT_INTERVAL = 5000; // change to any ms you prefer (e.g., 3000)
+    // Respect prefers-reduced-motion (optional; comment out to force autoplay)
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    block.__autoEnabled = !prefersReduced; // enable if not reduced motion
+    block.__autoInterval = DEFAULT_INTERVAL;
+
+    if (block.__autoEnabled) {
+      startAutoplay(block, block.__autoInterval, () => {
+        const i = parseInt(block.dataset.activeSlide, 10) + 1;
+        showSlide(block, i);
+      });
+    }
   }
 }
