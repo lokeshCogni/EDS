@@ -1,19 +1,20 @@
 import { fetchPlaceholders } from '../../scripts/placeholders.js';
 
-/* ---------- Autoplay helpers ---------- */
-function startAutoplay(block, intervalMs, tickFn) {
-  stopAutoplay(block); // avoid multiple timers
-  block.__carouselTimer = setInterval(tickFn, intervalMs);
-}
-
+/* ---------- Autoplay helpers (defined before use) ---------- */
 function stopAutoplay(block) {
-  if (block.__carouselTimer) {
-    clearInterval(block.__carouselTimer);
-    block.__carouselTimer = null;
+  if (block.carouselTimer) {
+    clearInterval(block.carouselTimer);
+    block.carouselTimer = null;
   }
 }
 
-/* ---------- Existing logic (unchanged except for formatting) ---------- */
+function startAutoplay(block, intervalMs, tickFn) {
+  // avoid multiple timers
+  stopAutoplay(block);
+  block.carouselTimer = setInterval(tickFn, intervalMs);
+}
+
+/* ---------- Your existing logic + minor formatting ---------- */
 function updateActiveSlide(slide) {
   const block = slide.closest('.carousel');
   const slideIndex = parseInt(slide.dataset.slideIndex, 10);
@@ -88,14 +89,14 @@ function bindEvents(block) {
     slideObserver.observe(slide);
   });
 
-  /* ---------- NEW: pause/resume hooks for autoplay ---------- */
+  /* ---------- Autoplay pause/resume hooks ---------- */
   block.addEventListener('mouseenter', () => {
     stopAutoplay(block);
   });
 
   block.addEventListener('mouseleave', () => {
-    if (block.__autoEnabled) {
-      startAutoplay(block, block.__autoInterval, () => {
+    if (block.autoEnabled) {
+      startAutoplay(block, block.autoInterval, () => {
         const i = parseInt(block.dataset.activeSlide, 10) + 1;
         showSlide(block, i);
       });
@@ -105,8 +106,8 @@ function bindEvents(block) {
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       stopAutoplay(block);
-    } else if (block.__autoEnabled) {
-      startAutoplay(block, block.__autoInterval, () => {
+    } else if (block.autoEnabled) {
+      startAutoplay(block, block.autoInterval, () => {
         const i = parseInt(block.dataset.activeSlide, 10) + 1;
         showSlide(block, i);
       });
@@ -191,16 +192,15 @@ export default async function decorate(block) {
   if (!isSingleSlide) {
     bindEvents(block);
 
-    /* ---------- NEW: start autoplay ---------- */
-    const DEFAULT_INTERVAL = 5000; // change to any ms you prefer (e.g., 3000)
-    // Respect prefers-reduced-motion (optional; comment out to force autoplay)
+    /* ---------- Autoplay start (defaults) ---------- */
+    const DEFAULT_INTERVAL = 5000; // 5s. Change as needed, e.g., 3000 for 3s
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    block.__autoEnabled = !prefersReduced; // enable if not reduced motion
-    block.__autoInterval = DEFAULT_INTERVAL;
+    block.autoEnabled = !prefersReduced; // disable if user prefers reduced motion
+    block.autoInterval = DEFAULT_INTERVAL;
 
-    if (block.__autoEnabled) {
-      startAutoplay(block, block.__autoInterval, () => {
+    if (block.autoEnabled) {
+      startAutoplay(block, block.autoInterval, () => {
         const i = parseInt(block.dataset.activeSlide, 10) + 1;
         showSlide(block, i);
       });
