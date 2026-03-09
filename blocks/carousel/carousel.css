@@ -11,7 +11,7 @@
 
 .carousel-track {
   display: flex;
-  transition: transform .4s ease;
+  transition: transform 0.4s ease;
   will-change: transform;
 }
 
@@ -26,12 +26,13 @@
   display: block;
 }
 
+/* Buttons */
 .carousel-prev,
 .carousel-next {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(0,0,0,.45);
+  background: rgb(0 0 0 / 45%); /* modern rgb with percentage alpha */
   color: #fff;
   border: none;
   width: 40px;
@@ -45,6 +46,7 @@
 .carousel-prev { left: 10px; }
 .carousel-next { right: 10px; }
 
+/* Dots */
 .carousel-dots {
   display: flex;
   gap: 6px;
